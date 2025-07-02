@@ -295,6 +295,31 @@
                         <!-- Questions List -->
                         <div>
                             <h3 class="text-xl font-bold text-gray-800 mb-4">📋 Danh sách câu hỏi</h3>
+                            
+                            <!-- Filter controls -->
+                            <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                                <h4 class="font-semibold text-gray-800 mb-3">🔍 Lọc câu hỏi</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Môn học</label>
+                                        <select id="filter-subject" onchange="loadFilterQuestionSets()" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                                            <option value="">Tất cả môn học</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Bộ đề</label>
+                                        <select id="filter-question-set" onchange="filterQuestions()" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                                            <option value="">Tất cả bộ đề</option>
+                                        </select>
+                                    </div>
+                                    <div class="flex items-end">
+                                        <button onclick="resetQuestionFilter()" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                                            🔄 Reset bộ lọc
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
                             <div id="admin-questions-list" class="space-y-4">
                                 <!-- Questions will be loaded here -->
                             </div>
@@ -384,8 +409,8 @@
                         <div class="relative inline-block">
                             <img id="user-question-image" src="" alt="Câu hỏi" onclick="openImageModal()" 
                                  class="max-w-full h-auto rounded-lg shadow-md mx-auto max-h-96 object-contain cursor-pointer hover:opacity-90 transition-opacity">
-                            <div class="absolute top-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
-                                🔍 Click để phóng to
+                            <div class="absolute bottom-2 right-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
+                                🔍 Phóng to
                             </div>
                         </div>
                     </div>
@@ -438,13 +463,32 @@
                         <p>Điểm của bạn: <span id="user-final-score" class="font-bold text-green-600"></span></p>
                         <p>Thời gian hoàn thành: <span id="user-final-time" class="font-bold text-blue-600"></span></p>
                     </div>
-                    <div class="space-x-4">
-                        <button onclick="backToQuizSelection()" class="px-8 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
-                            Chọn đề khác
+                    <div class="flex flex-wrap justify-center gap-3">
+                        <button onclick="reviewQuiz()" class="px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">
+                            📋 Xem lại bài
                         </button>
-                        <button onclick="userRestartQuiz()" class="px-8 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
-                            Làm lại
+                        <button onclick="backToQuizSelection()" class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                            📚 Chọn đề khác
                         </button>
+                        <button onclick="userRestartQuiz()" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
+                            🔄 Làm lại
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quiz Review -->
+            <div id="quiz-review-section" class="hidden">
+                <div class="max-w-4xl mx-auto">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">📋 Xem lại bài làm</h2>
+                        <button onclick="backToQuizComplete()" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                            ← Quay lại kết quả
+                        </button>
+                    </div>
+                    
+                    <div id="review-content" class="space-y-6">
+                        <!-- Review questions will be displayed here -->
                     </div>
                 </div>
             </div>
@@ -453,8 +497,10 @@
 
     <!-- Image Modal -->
     <div id="image-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center">
-        <div class="relative max-w-full max-h-full p-4">
-            <img id="modal-image" src="" alt="Câu hỏi phóng to" class="max-w-full max-h-full object-contain">
+        <div class="relative w-full h-full overflow-hidden">
+            <div id="image-container" class="relative w-full h-full flex items-center justify-center overflow-hidden cursor-move">
+                <img id="modal-image" src="" alt="Câu hỏi phóng to" class="max-w-none max-h-none object-contain select-none">
+            </div>
             <div class="absolute top-4 right-4 flex space-x-2">
                 <button onclick="zoomIn()" class="bg-white bg-opacity-80 hover:bg-opacity-100 text-black px-3 py-2 rounded-lg transition-all">
                     🔍 Phóng to
@@ -469,12 +515,15 @@
                     ✕ Đóng
                 </button>
             </div>
+            <div class="absolute bottom-4 left-4 bg-white bg-opacity-80 text-black px-3 py-2 rounded-lg text-sm">
+                💡 Cuộn chuột để zoom, kéo để di chuyển
+            </div>
         </div>
     </div>
 
     <script type="module">
         // Import Firebase functions
-        import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+        import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, setDoc, query, orderBy, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
         
         // Global variables
         let currentUser = null;
@@ -641,8 +690,20 @@
                     await loadAdminQuestions();
                     await loadAdminStats();
                     
-                    // Reset form
-                    document.querySelector('#admin-tab-questions form').reset();
+                    // Reset form but keep subject and question set selection
+                    const form = document.querySelector('#admin-tab-questions form');
+                    const subjectValue = document.getElementById('question-subject').value;
+                    const questionSetValue = document.getElementById('question-set').value;
+                    
+                    form.reset();
+                    
+                    // Restore selections
+                    document.getElementById('question-subject').value = subjectValue;
+                    if (subjectValue) {
+                        await loadQuestionSets(); // Reload question sets for the subject
+                        document.getElementById('question-set').value = questionSetValue;
+                    }
+                    
                     document.getElementById('image-preview').classList.add('hidden');
                     
                     alert('Thêm câu hỏi thành công!');
@@ -728,41 +789,105 @@
             }
         }
         
-        function displayAdminQuestions() {
+        function displayAdminQuestions(filteredQuestions = null) {
             const questionsList = document.getElementById('admin-questions-list');
+            const questionsToShow = filteredQuestions || questions;
             
-            if (questions.length === 0) {
-                questionsList.innerHTML = '<p class="text-gray-500 text-center py-8">Chưa có câu hỏi nào</p>';
+            if (questionsToShow.length === 0) {
+                questionsList.innerHTML = '<p class="text-gray-500 text-center py-8">Không có câu hỏi nào phù hợp với bộ lọc</p>';
                 return;
             }
 
-            questionsList.innerHTML = questions.map((question, index) => `
-                <div class="border border-gray-200 rounded-lg p-4">
-                    <div class="flex justify-between items-start">
-                        <div class="flex-1">
-                            <div class="flex items-center space-x-4 mb-3">
-                                <img src="${question.image}" alt="Question ${index + 1}" class="w-20 h-20 object-cover rounded-lg">
-                                <div>
-                                    <h4 class="font-semibold text-gray-800">Câu ${index + 1}</h4>
-                                    <p class="text-sm text-gray-600">${question.content || 'Câu hỏi từ hình ảnh'}</p>
-                                    <p class="text-sm text-green-600 font-medium">Đáp án: ${question.correctAnswer}</p>
+            // Load filter subjects on first load
+            if (!filteredQuestions) {
+                loadFilterSubjects();
+            }
+
+            questionsList.innerHTML = questionsToShow.map((question, index) => {
+                // Find subject and question set names
+                const subject = subjects.find(s => s.id === question.subjectId);
+                const questionSet = questionSets.find(qs => qs.id === question.questionSetId);
+                
+                return `
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-4 mb-3">
+                                    <img src="${question.image}" alt="Question ${index + 1}" class="w-20 h-20 object-cover rounded-lg">
+                                    <div>
+                                        <h4 class="font-semibold text-gray-800">Câu ${index + 1}</h4>
+                                        <p class="text-sm text-blue-600 font-medium">📚 ${subject?.name || 'Chưa rõ môn'} - 📋 ${questionSet?.name || 'Chưa rõ bộ đề'}</p>
+                                        <p class="text-sm text-gray-600">${question.content || 'Câu hỏi từ hình ảnh'}</p>
+                                        <p class="text-sm text-green-600 font-medium">Đáp án: ${question.correctAnswer}</p>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2 text-sm">
+                                    <div>A. ${question.answers.A}</div>
+                                    <div>B. ${question.answers.B}</div>
+                                    <div>C. ${question.answers.C}</div>
+                                    <div>D. ${question.answers.D}</div>
                                 </div>
                             </div>
-                            <div class="grid grid-cols-2 gap-2 text-sm">
-                                <div>A. ${question.answers.A}</div>
-                                <div>B. ${question.answers.B}</div>
-                                <div>C. ${question.answers.C}</div>
-                                <div>D. ${question.answers.D}</div>
-                            </div>
+                            <button onclick="deleteAdminQuestion('${question.id}')" 
+                                    class="ml-4 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors">
+                                🗑️ Xóa
+                            </button>
                         </div>
-                        <button onclick="deleteAdminQuestion('${question.id}')" 
-                                class="ml-4 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors">
-                            🗑️ Xóa
-                        </button>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
+
+        // Filter functions
+        function loadFilterSubjects() {
+            const filterSubject = document.getElementById('filter-subject');
+            if (!filterSubject) return;
+            
+            filterSubject.innerHTML = '<option value="">Tất cả môn học</option>';
+            subjects.forEach(subject => {
+                filterSubject.innerHTML += `<option value="${subject.id}">${subject.name}</option>`;
+            });
+        }
+
+        window.loadFilterQuestionSets = function() {
+            const subjectId = document.getElementById('filter-subject').value;
+            const filterQuestionSet = document.getElementById('filter-question-set');
+            
+            filterQuestionSet.innerHTML = '<option value="">Tất cả bộ đề</option>';
+            
+            if (subjectId) {
+                const subjectQuestionSets = questionSets.filter(qs => qs.subjectId === subjectId);
+                subjectQuestionSets.forEach(qs => {
+                    filterQuestionSet.innerHTML += `<option value="${qs.id}">${qs.name}</option>`;
+                });
+            }
+            
+            // Apply filter after changing subject
+            filterQuestions();
+        };
+
+        window.filterQuestions = function() {
+            const subjectId = document.getElementById('filter-subject').value;
+            const questionSetId = document.getElementById('filter-question-set').value;
+            
+            let filteredQuestions = questions;
+            
+            if (subjectId) {
+                filteredQuestions = filteredQuestions.filter(q => q.subjectId === subjectId);
+            }
+            
+            if (questionSetId) {
+                filteredQuestions = filteredQuestions.filter(q => q.questionSetId === questionSetId);
+            }
+            
+            displayAdminQuestions(filteredQuestions);
+        };
+
+        window.resetQuestionFilter = function() {
+            document.getElementById('filter-subject').value = '';
+            document.getElementById('filter-question-set').innerHTML = '<option value="">Tất cả bộ đề</option>';
+            displayAdminQuestions();
+        };
         
         async function loadAdminStats() {
             // Load statistics
@@ -961,16 +1086,120 @@
             `;
         }
 
-        window.showUserDetails = function(userName) {
-            // Find user data
-            const usersSnapshot = getDocs(collection(window.db, 'userSessions'));
-            // This is a simplified version - in real implementation, we'd need to re-query
+        window.showUserDetails = async function(userName) {
             document.getElementById('user-detail-title').textContent = `Chi tiết của ${userName}`;
             document.getElementById('user-detail-content').innerHTML = `
-                <p class="text-gray-600 mb-4">Đang tải chi tiết...</p>
-                <p class="text-sm text-gray-500">Chức năng này sẽ hiển thị tất cả sessions của user</p>
+                <div class="flex items-center justify-center py-8">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mr-4"></div>
+                    <span class="text-gray-600">Đang tải chi tiết...</span>
+                </div>
             `;
             document.getElementById('user-detail-modal').classList.remove('hidden');
+            
+            try {
+                // Load user sessions
+                const usersSnapshot = await getDocs(collection(window.db, 'userSessions'));
+                const userSessions = [];
+                
+                usersSnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    if (data.userName === userName) {
+                        userSessions.push({
+                            id: doc.id,
+                            ...data
+                        });
+                    }
+                });
+                
+                // Sort sessions by date (most recent first)
+                userSessions.sort((a, b) => {
+                    const dateA = a.completedAt?.toDate ? a.completedAt.toDate() : new Date(a.completedAt);
+                    const dateB = b.completedAt?.toDate ? b.completedAt.toDate() : new Date(b.completedAt);
+                    return dateB - dateA;
+                });
+                
+                if (userSessions.length === 0) {
+                    document.getElementById('user-detail-content').innerHTML = `
+                        <p class="text-gray-500 text-center py-8">Người dùng này chưa có lần làm bài nào</p>
+                    `;
+                    return;
+                }
+                
+                // Display user sessions
+                document.getElementById('user-detail-content').innerHTML = `
+                    <div class="space-y-4">
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-blue-800 mb-2">📊 Tổng quan</h4>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                <div class="text-center">
+                                    <div class="text-lg font-bold text-blue-600">${userSessions.length}</div>
+                                    <div class="text-gray-600">Tổng lần làm</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-lg font-bold text-green-600">${Math.max(...userSessions.map(s => s.score || 0))}</div>
+                                    <div class="text-gray-600">Điểm cao nhất</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-lg font-bold text-purple-600">${Math.max(...userSessions.map(s => s.percentage || 0))}%</div>
+                                    <div class="text-gray-600">% tốt nhất</div>
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-lg font-bold text-orange-600">${formatTime(Math.round(userSessions.reduce((sum, s) => sum + (s.completionTime || 0), 0) / userSessions.length))}</div>
+                                    <div class="text-gray-600">Thời gian TB</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="max-h-96 overflow-y-auto">
+                            <h4 class="font-semibold text-gray-800 mb-3">📋 Lịch sử làm bài</h4>
+                            <div class="space-y-3">
+                                ${userSessions.map((session, index) => {
+                                    const completedAt = session.completedAt?.toDate ? 
+                                        session.completedAt.toDate() : 
+                                        new Date(session.completedAt);
+                                    
+                                    return `
+                                        <div class="border border-gray-200 rounded-lg p-4 ${index === 0 ? 'bg-yellow-50 border-yellow-300' : 'bg-white'}">
+                                            <div class="flex justify-between items-start mb-2">
+                                                <div class="flex items-center space-x-2">
+                                                    <span class="text-sm font-medium text-gray-600">
+                                                        ${index === 0 ? '🕐 Lần làm mới nhất' : `📅 Lần ${userSessions.length - index}`}
+                                                    </span>
+                                                    ${session.percentage >= 80 ? '🏆' : session.percentage >= 60 ? '👍' : '💪'}
+                                                </div>
+                                                <span class="text-xs text-gray-500">
+                                                    ${completedAt.toLocaleDateString()} ${completedAt.toLocaleTimeString()}
+                                                </span>
+                                            </div>
+                                            <div class="grid grid-cols-3 gap-4 text-sm">
+                                                <div>
+                                                    <span class="text-gray-600">Điểm:</span>
+                                                    <span class="font-semibold text-green-600 ml-1">
+                                                        ${session.score}/${session.totalQuestions}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <span class="text-gray-600">Phần trăm:</span>
+                                                    <span class="font-semibold text-blue-600 ml-1">${session.percentage}%</span>
+                                                </div>
+                                                <div>
+                                                    <span class="text-gray-600">Thời gian:</span>
+                                                    <span class="font-semibold text-purple-600 ml-1">${formatTime(session.completionTime || 0)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error loading user details:', error);
+                document.getElementById('user-detail-content').innerHTML = `
+                    <p class="text-red-500 text-center py-8">❌ Lỗi khi tải chi tiết người dùng</p>
+                `;
+            }
         };
 
         window.closeUserDetails = function() {
@@ -1052,6 +1281,17 @@
         }
 
         window.selectQuestionSet = async function(questionSetId, subjectName, questionSetName) {
+            // Stop any existing timer first
+            if (quizTimer) {
+                clearInterval(quizTimer);
+                quizTimer = null;
+            }
+            
+            // Reset all quiz states
+            currentQuestionIndex = 0;
+            userScore = 0;
+            userSelectedAnswer = null;
+            
             // Load questions for this question set
             try {
                 const questionsSnapshot = await getDocs(collection(window.db, 'questions'));
@@ -1071,6 +1311,10 @@
                 // Store current selection
                 currentSubjectId = null; // We'll find it from questionSetId
                 currentQuestionSetId = questionSetId;
+                
+                // Reset and hide all quiz UI elements
+                document.getElementById('user-quiz-complete').classList.add('hidden');
+                document.getElementById('user-question-content').classList.remove('hidden');
                 
                 // Update UI to show selected quiz info
                 document.getElementById('quiz-selection').querySelector('h2').textContent = 
@@ -1092,6 +1336,7 @@
             currentQuestionIndex = 0;
             userScore = 0;
             quizStartTime = Date.now();
+            userAnswers = []; // Reset user answers for new quiz
             
             startQuizTimer();
             updateUserQuizDisplay();
@@ -1149,6 +1394,11 @@
             if (userSelectedAnswer) return;
             
             userSelectedAnswer = answer;
+            
+            // Store user answer for review
+            if (!userAnswers) userAnswers = [];
+            userAnswers[currentQuestionIndex] = answer;
+            
             const question = questions[currentQuestionIndex];
             const isCorrect = answer === question.correctAnswer;
 
@@ -1284,8 +1534,9 @@ D. ${question.answers.D}
                     percentage: Math.round((userScore / questions.length) * 100)
                 };
                 
-                // Always add new document, never update existing
-                await addDoc(collection(window.db, 'userSessions'), sessionData);
+                // Create custom document ID with username + timestamp for easier management
+                const customDocId = `${currentUser.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}`;
+                await setDoc(doc(window.db, 'userSessions', customDocId), sessionData);
                 console.log('Session saved successfully:', sessionData);
             } catch (error) {
                 console.error('Error saving session:', error);
@@ -1573,35 +1824,96 @@ D. ${question.answers.D}
             }
         };
 
-        // Image Zoom Functions
+        // Image Zoom Functions with Mouse Interaction
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let imgPosX = 0;
+        let imgPosY = 0;
+
         window.openImageModal = function() {
             const originalImg = document.getElementById('user-question-image');
             const modalImg = document.getElementById('modal-image');
+            const container = document.getElementById('image-container');
             
             modalImg.src = originalImg.src;
             currentZoom = 1;
-            modalImg.style.transform = `scale(${currentZoom})`;
+            imgPosX = 0;
+            imgPosY = 0;
+            
+            updateImageTransform();
             
             document.getElementById('image-modal').classList.remove('hidden');
+            
+            // Setup mouse events
+            setupImageInteraction();
         };
+
+        function updateImageTransform() {
+            const modalImg = document.getElementById('modal-image');
+            modalImg.style.transform = `translate(${imgPosX}px, ${imgPosY}px) scale(${currentZoom})`;
+        }
+
+        function setupImageInteraction() {
+            const container = document.getElementById('image-container');
+            const modalImg = document.getElementById('modal-image');
+            
+            // Mouse wheel zoom
+            container.onwheel = function(e) {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                currentZoom = Math.max(0.5, Math.min(5, currentZoom + delta));
+                updateImageTransform();
+            };
+            
+            // Mouse drag
+            modalImg.onmousedown = function(e) {
+                e.preventDefault();
+                isDragging = true;
+                dragStartX = e.clientX - imgPosX;
+                dragStartY = e.clientY - imgPosY;
+                container.style.cursor = 'grabbing';
+            };
+            
+            container.onmousemove = function(e) {
+                if (!isDragging) return;
+                e.preventDefault();
+                imgPosX = e.clientX - dragStartX;
+                imgPosY = e.clientY - dragStartY;
+                updateImageTransform();
+            };
+            
+            container.onmouseup = function() {
+                isDragging = false;
+                container.style.cursor = 'move';
+            };
+            
+            container.onmouseleave = function() {
+                isDragging = false;
+                container.style.cursor = 'move';
+            };
+        }
 
         window.closeImageModal = function() {
             document.getElementById('image-modal').classList.add('hidden');
+            isDragging = false;
         };
 
         window.zoomIn = function() {
-            currentZoom = Math.min(currentZoom + 0.2, 3);
-            document.getElementById('modal-image').style.transform = `scale(${currentZoom})`;
+            currentZoom = Math.min(currentZoom + 0.3, 5);
+            updateImageTransform();
         };
 
         window.zoomOut = function() {
-            currentZoom = Math.max(currentZoom - 0.2, 0.5);
-            document.getElementById('modal-image').style.transform = `scale(${currentZoom})`;
+            currentZoom = Math.max(currentZoom - 0.3, 0.5);
+            updateImageTransform();
         };
 
         window.resetZoom = function() {
             currentZoom = 1;
-            document.getElementById('modal-image').style.transform = `scale(${currentZoom})`;
+            imgPosX = 0;
+            imgPosY = 0;
+            updateImageTransform();
         };
 
         // Close modal when clicking outside
@@ -1611,6 +1923,123 @@ D. ${question.answers.D}
                 closeImageModal();
             }
         });
+
+        // Quiz Review Functions
+        let userAnswers = []; // Store user answers for review
+
+        window.reviewQuiz = function() {
+            document.getElementById('user-quiz-complete').classList.add('hidden');
+            document.getElementById('quiz-review-section').classList.remove('hidden');
+            displayQuizReview();
+        };
+
+        window.backToQuizComplete = function() {
+            document.getElementById('quiz-review-section').classList.add('hidden');
+            document.getElementById('user-quiz-complete').classList.remove('hidden');
+        };
+
+        function displayQuizReview() {
+            const reviewContent = document.getElementById('review-content');
+            
+            if (!userAnswers || userAnswers.length === 0) {
+                reviewContent.innerHTML = '<p class="text-center text-gray-500 py-8">Không có dữ liệu bài làm để xem lại</p>';
+                return;
+            }
+            
+            reviewContent.innerHTML = questions.map((question, index) => {
+                const userAnswer = userAnswers[index] || 'Không trả lời';
+                const isCorrect = userAnswer === question.correctAnswer;
+                const correctAnswer = question.correctAnswer;
+                
+                return `
+                    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 ${isCorrect ? 'border-green-500' : 'border-red-500'}">
+                        <div class="flex items-start justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-800">Câu ${index + 1}</h3>
+                            <div class="flex items-center space-x-2">
+                                <span class="px-3 py-1 rounded-full text-sm ${isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                    ${isCorrect ? '✅ Đúng' : '❌ Sai'}
+                                </span>
+                                ${!isCorrect ? `<button onclick="showAIExplanationReview(${index})" class="px-3 py-1 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition-colors">🤖 Giải thích AI</button>` : ''}
+                            </div>
+                        </div>
+                        
+                        ${question.image ? `
+                            <div class="mb-4">
+                                <img src="${question.image}" alt="Câu hỏi ${index + 1}" 
+                                     class="max-w-full h-auto rounded-lg shadow-sm cursor-pointer hover:opacity-90 transition-opacity max-h-96 object-contain"
+                                     onclick="openImageModal(); document.getElementById('modal-image').src='${question.image}'">
+                            </div>
+                        ` : ''}
+                        
+                        ${question.content ? `<p class="text-gray-700 mb-4">${question.content}</p>` : ''}
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                            ${Object.entries(question.answers).map(([key, value]) => {
+                                let bgClass = 'bg-gray-50 border-gray-200';
+                                let textClass = 'text-gray-700';
+                                let icon = '';
+                                
+                                if (key === correctAnswer) {
+                                    bgClass = 'bg-green-100 border-green-500';
+                                    textClass = 'text-green-800 font-semibold';
+                                    icon = '✅ ';
+                                } else if (key === userAnswer && key !== correctAnswer) {
+                                    bgClass = 'bg-red-100 border-red-500';
+                                    textClass = 'text-red-800';
+                                    icon = '❌ ';
+                                }
+                                
+                                return `
+                                    <div class="p-3 rounded-lg border-2 ${bgClass} ${textClass}">
+                                        ${icon}${key}. ${value}
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                        
+                        <div class="text-sm text-gray-600">
+                            <p><strong>Bạn chọn:</strong> ${userAnswer}</p>
+                            <p><strong>Đáp án đúng:</strong> ${correctAnswer}</p>
+                        </div>
+                        
+                        <div id="ai-explanation-${index}" class="hidden mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                            <h4 class="font-semibold text-blue-800 mb-2">🤖 Giải thích của AI:</h4>
+                            <div id="ai-explanation-content-${index}" class="text-blue-700">
+                                <div class="flex items-center space-x-2">
+                                    <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                    <span>Đang tạo giải thích...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.showAIExplanationReview = async function(questionIndex) {
+            const question = questions[questionIndex];
+            const userAnswer = userAnswers[questionIndex];
+            const explanationDiv = document.getElementById(`ai-explanation-${questionIndex}`);
+            const explanationContent = document.getElementById(`ai-explanation-content-${questionIndex}`);
+            
+            explanationDiv.classList.remove('hidden');
+            explanationContent.innerHTML = `
+                <div class="flex items-center space-x-2">
+                    <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    <span>Đang tạo giải thích...</span>
+                </div>
+            `;
+            
+            try {
+                const explanation = await callGeminiAPI(question, userAnswer);
+                explanationContent.innerHTML = `<p>${explanation}</p>`;
+            } catch (error) {
+                explanationContent.innerHTML = `
+                    <p class="text-red-600">❌ Không thể lấy giải thích từ AI.</p>
+                    <p class="mt-2"><strong>Đáp án đúng:</strong> ${question.correctAnswer} - ${question.answers[question.correctAnswer]}</p>
+                `;
+            }
+        };
         
     </script>
 </body>

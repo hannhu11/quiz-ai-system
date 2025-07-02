@@ -1287,10 +1287,17 @@
                 quizTimer = null;
             }
             
-            // Reset all quiz states
+            // Reset ALL quiz states and UI elements
             currentQuestionIndex = 0;
             userScore = 0;
             userSelectedAnswer = null;
+            userAnswers = []; // Reset answers array
+            
+            // Hide ALL quiz related UI elements
+            document.getElementById('user-quiz-complete').classList.add('hidden');
+            document.getElementById('quiz-review-section').classList.add('hidden');
+            document.getElementById('user-quiz-content').classList.add('hidden');
+            document.getElementById('quiz-selection').classList.remove('hidden');
             
             // Load questions for this question set
             try {
@@ -1312,17 +1319,18 @@
                 currentSubjectId = null; // We'll find it from questionSetId
                 currentQuestionSetId = questionSetId;
                 
-                // Reset and hide all quiz UI elements
-                document.getElementById('user-quiz-complete').classList.add('hidden');
-                document.getElementById('user-question-content').classList.remove('hidden');
-                
                 // Update UI to show selected quiz info
                 document.getElementById('quiz-selection').querySelector('h2').textContent = 
                     `${subjectName} - ${questionSetName}`;
                 document.getElementById('quiz-selection').querySelector('p').textContent = 
                     `Sẵn sàng làm bài với ${questions.length} câu hỏi`;
                     
-                startUserQuiz();
+                // Show start button or auto-start
+                setTimeout(() => {
+                    if (confirm(`Bắt đầu làm bài "${questionSetName}" với ${questions.length} câu hỏi?`)) {
+                        startUserQuiz();
+                    }
+                }, 100);
             } catch (error) {
                 console.error('Error loading questions:', error);
                 alert('Lỗi khi tải câu hỏi!');
@@ -1557,13 +1565,25 @@ D. ${question.answers.D}
         }
 
         window.userRestartQuiz = function() {
+            // Stop existing timer
+            if (quizTimer) {
+                clearInterval(quizTimer);
+                quizTimer = null;
+            }
+            
+            // Reset all states
             currentQuestionIndex = 0;
             userScore = 0;
+            userSelectedAnswer = null;
+            userAnswers = []; // Reset answers for new attempt
             quizStartTime = Date.now();
             
+            // Hide completion and review screens, show question content
             document.getElementById('user-quiz-complete').classList.add('hidden');
+            document.getElementById('quiz-review-section').classList.add('hidden');
             document.getElementById('user-question-content').classList.remove('hidden');
             
+            // Restart timer and display
             startQuizTimer();
             updateUserQuizDisplay();
         };
